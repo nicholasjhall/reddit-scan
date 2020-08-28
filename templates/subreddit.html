@@ -14,8 +14,8 @@
 		console.log(Object.keys(word_map));
 		console.log(Object.values(word_map));
 		var data = {
-			labels: Object.keys(word_map),
-			series: [Object.values(word_map)]
+			labels: Object.keys(word_map).slice(0, 20),
+			series: [Object.values(word_map).slice(0, 20)]
 		};
 
 		var options = {
