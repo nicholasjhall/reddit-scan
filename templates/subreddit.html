@@ -1,2 +1,29 @@
 {% extends "layout.html" %}
-{% block content %}<p>{{sub}}<p>{% endblock %}
+{% block content %}
+<p>{{sub}}<p>
+<div class="ct-chart ct-perfect-fourth"></div>
+<script
+  src="https://code.jquery.com/jquery-3.5.1.min.js"
+  integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0="
+  crossorigin="anonymous"></script>
+<script>
+
+	var getData = $.get('/data');
+	console.log("getting data");
+	getData.done(function(word_map) {
+		console.log(Object.keys(word_map));
+		console.log(Object.values(word_map));
+		var data = {
+			labels: Object.keys(word_map),
+			series: [Object.values(word_map)]
+		};
+
+		var options = {
+			width: 1800,
+			height: 600
+		}
+
+		new Chartist.Line('.ct-chart', data, options);
+	});
+</script>
+{% endblock %}
