@@ -1,9 +1,5 @@
 {% extends "layout.html" %}
-{% block header %}Home{% endblock %}
+{% block header %}Subject Scan - Home{% endblock %}
 {% block content %}
-<form method="post">
-	<p>Subreddit:</p>
-	<p><input type="text" name="sub" /></p>
-	<p><input type="submit" name="submit" /></p>
-</form>
+<p>Subject Scan creates a graph of the top title 20 words by karma per occurrence, with one-off popular words removed. The data is taken from the all time top 500 posts of the specified subreddit.</p>
 {% endblock %}
