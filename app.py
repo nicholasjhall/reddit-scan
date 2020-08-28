@@ -1,50 +1,72 @@
 from flask import Flask, redirect, url_for, render_template, request, jsonify, json
 import praw
 import nltk
+import numpy as np
 # nltk.download('punkt') is needed
 
 app = Flask(__name__)
-#app.config('JSON_SORT_KEYS') = False
 reddit = praw.Reddit("scanner")
-karma_dict = {}
+karma = {}
+occurrences = {}
 valid_tags = ['JJ','NN','NNS','VBZ','VBN','VBD','VBP','VB','NNP']
-# IDEA: keep track of not only the total karma, but also the avg karma per word, by dividing by the number of appearances
 
 
 @app.route("/", methods=["POST", "GET"])
 def home():
-	print("console test")
 	if request.method == "POST":
 		sub = request.form["sub"]
 		return redirect(url_for("subredditPage", sub=sub))
 	else:
-		print("Base home page")
 		return render_template("index.html")
 
 
 @app.route("/<sub>", methods=["POST", "GET"])
 def subredditPage(sub):
+	global karma
+	global occurrences
+
 	if request.method == "GET":
-		print(sub)
 		subreddit = reddit.subreddit(sub)
-		for submission in subreddit.top(limit=5):
-			print(submission.title)
+		
+		# iterate through top 500 posts to tokenize and tag words
+		for submission in subreddit.top(limit=500):
 			words = nltk.word_tokenize(submission.title)
 			tagged = nltk.pos_tag(words)
-			for word in tagged:
-				if word[1] in valid_tags:
-					if word[0] in karma_dict:
-						karma_dict[word[0]] += submission.score
+
+			# iterate through tagged words to clean and sum karma
+			for fullWord in tagged:
+				word = [fullWord[0].lower(), fullWord[1]]
+				# only use word if it is a valid part of speech
+				if word[0].isalpha() and word[1] in valid_tags:
+					if word[0] in karma:
+						karma[word[0]] += submission.score
+						occurrences[word[0]] += 1
 					else:
-						karma_dict[word[0]] = submission.score
-		print(karma_dict)
+						karma[word[0]] = submission.score
+						occurrences[word[0]] = 1
 		return render_template("subreddit.html", sub=sub)
 	else:
-		return render_template("subreddit.html", sub=sub)
+		# reset total karma and occurrences for new subreddit
+		karma = {}
+		occurrences = {}
+		newSub = request.form["sub"]
+		return redirect(url_for("subredditPage", sub=newSub))
 
 @app.route("/data")
 def data():
-	karma_dict_sorted = {k: v for k, v in sorted(karma_dict.items(), key=lambda item: item[1])}
+	# change total karma dict to karma per occurrence dict
+	for word in karma:
+		karma[word] /= occurrences[word]
+	karmaNoDup = {}
+	karmaValues = list(karma.values())
+	# eliminate all words with duplicate values
+	for key, value in karma.items():
+		valueCount = karmaValues.count(value)
+		if valueCount == 1:
+			karmaNoDup[key] = value
+	# sort words by karma per occurrence in descending order
+	karma_dict_sorted = {k: v for k, v in sorted(karmaNoDup.items(), reverse=True, key=lambda item: item[1])}
+	# convert dictionary to json
 	response = app.response_class(json.dumps(karma_dict_sorted, sort_keys=False), mimetype=app.config['JSONIFY_MIMETYPE'])
 	return response
 
